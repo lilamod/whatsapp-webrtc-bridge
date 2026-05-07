@@ -115,6 +115,31 @@ app.get('/calls', (req, res) => {
     res.json({ count: calls.length, calls });
 });
 
+// Add after app.get('/health'...
+app.get('/test-turn', async (req, res) => {
+    const pc = new RTCPeerConnection({
+        iceServers: [{
+            urls: `turn:217.216.79.253:3478`,
+            username: 'x6yt76',
+            credential: process.env.TURN_PASSWORD || '',
+        }],
+        iceTransportPolicy: 'relay'
+    });
+    
+    const states = [];
+    pc.oniceconnectionstatechange = () => states.push(pc.iceConnectionState);
+    
+    // Create dummy offer
+    const dc = pc.createDataChannel('test');
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    pc.close();
+    
+    res.json({ ice_states: states, gathered: pc.iceGatheringState });
+});
+
 // ── WebRTC Bridge Core ────────────────────────────────────────────────
 
 async function createWebRTCBridge(callId, sdpOffer, audioUrl) {
